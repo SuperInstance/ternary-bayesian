@@ -154,6 +154,13 @@ The Naive Bayes classifier uses Laplace smoothing (starting counts at 1) to avoi
 | `ternary-locks` | Lock satisfaction can be modeled probabilistically |
 | `ternary-econ` | Market signals feed into Bayesian market models |
 
+## Known Limitations
+
+- **`BayesianNetwork::propagate_round` is not true belief propagation.** It computes a weighted average of parent-conditioned distributions rather than performing message passing on a junction tree. Results may be incorrect for networks with more than 2 layers or non-tree structure.
+- **`VariationalInference::fit` suffers from mode collapse.** All components are updated with the same gradient toward the target, converging to identical distributions rather than a true mixture. Real variational inference would optimize the ELBO.
+- **`TernaryNaiveBayes` stores class priors in `TernaryDist.p_pos`** — a workaround for the fact that `TernaryDist` is a poor type for scalar class probabilities. This is an API design limitation.
+- **No support for continuous evidence.** All evidence must be one of three ternary values.
+
 ## License
 
 MIT

@@ -382,10 +382,14 @@ impl TernaryNaiveBayes {
         let total: usize = class_counts.iter().sum();
         for c in 0..n_classes {
             let count = class_counts[c] as f64;
+            // Store class prior P(class=c) in p_pos field.
+            // (TernaryDist is a poor fit for class priors — this is a known
+            // limitation of the API design. The prior probability lives in p_pos.)
+            let prior = if total > 0 { count / total as f64 } else { 1.0 / n_classes as f64 };
             self.class_priors[c] = TernaryDist {
-                p_neg: count / total as f64,
-                p_zero: count / total as f64,
-                p_pos: count / total as f64,
+                p_neg: 0.0,
+                p_zero: 0.0,
+                p_pos: prior,
             };
         }
 
@@ -409,7 +413,9 @@ impl TernaryNaiveBayes {
         let mut best_score = f64::NEG_INFINITY;
 
         for c in 0..n_classes {
-            let mut score = 0.0;
+            // Start with log class prior P(class=c)
+            let prior = self.class_priors[c].p_pos;
+            let mut score = if prior > 0.0 { prior.ln() } else { f64::NEG_INFINITY };
             for (fi, feat) in features.iter().enumerate() {
                 score += self.feature_likelihoods[fi][c].probability(*feat).ln();
             }
