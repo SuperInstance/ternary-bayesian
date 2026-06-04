@@ -1,0 +1,6 @@
+[package]
+name = "ternary-bayesian"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Bayesian inference for ternary variables on {-1, 0, +1}"
