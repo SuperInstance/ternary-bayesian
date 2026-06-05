@@ -161,6 +161,14 @@ The Naive Bayes classifier uses Laplace smoothing (starting counts at 1) to avoi
 - **`TernaryNaiveBayes` stores class priors in `TernaryDist.p_pos`** — a workaround for the fact that `TernaryDist` is a poor type for scalar class probabilities. This is an API design limitation.
 - **No support for continuous evidence.** All evidence must be one of three ternary values.
 
+## See Also
+
+- **ternary-predict** — Prediction and forecasting with ternary models
+- **ternary-kalman** — Kalman filtering for ternary state estimation
+- **ternary-prophet** — Time-series forecasting on ternary variables
+- **ternary-oracle** — Oracle and prophecy mechanisms for ternary systems
+- **ternary-markov** — Markov chain models over ternary states
+
 ## License
 
 MIT
