@@ -1,89 +1,105 @@
-# ternary-bayesian
+# Ternary Bayesian
 
-**Bayesian inference for ternary variables on {-1, 0, +1}**
+**Ternary Bayesian** provides Bayesian inference for ternary variables on {-1, 0, +1} — offering prior/posterior distributions, conditional probability tables (CPTs), belief propagation, and variational inference for probabilistic reasoning over ternary random variables.
 
-[![ternary](https://img.shields.io/badge/ecosystem-ternary-blue)](https://github.com/orgs/SuperInstance/repositories?q=ternary)
-[![tests](https://img.shields.io/badge/tests-21-green)]()
+## Why It Matters
 
-## Overview
+Real-world uncertainty comes in three flavors: positive evidence (+1), negative evidence (-1), and no evidence (0). Standard Bayesian inference handles binary or continuous variables but doesn't naturally model the "unknown" state. Ternary Bayesian inference treats absence of evidence as a first-class random variable — enabling more honest uncertainty quantification. Applications: ternary sentiment analysis (positive/negative/neutral), fault diagnosis (faulty/normal/unknown), and fleet health (healthy/degraded/unknown).
 
-Bayesian inference for ternary variables on {-1, 0, +1}.
+## How It Works
 
-Provides prior/posterior distributions, evidence updates, Bayesian networks,
-conditional probability tables, belief propagation, and variational inference.
+### Ternary Distribution
 
-## Architecture
+A probability distribution over {-1, 0, +1}:
 
-- **`TernaryDist`** — core data structure
-- **`CPT`** — core data structure
-- **`BayesNode`** — core data structure
-- **`BayesianNetwork`** — core data structure
-- **`VariationalInference`** — core data structure
-- **`TernaryNaiveBayes`** — core data structure
-- **`Ternary`** — state enumeration
-
-### Key Functions
-
-- `to_i8()`
-- `from_i8()`
-- `values()`
-- `new()`
-- `uniform()`
-- `probability()`
-- `entropy()`
-- `map()`
-- `mean()`
-- `variance()`
-- ... and 19 more
-
-## Why Ternary?
-
-The balanced ternary system {-1, 0, +1} (also known as Z₃) is the mathematically optimal discrete encoding:
-- **More expressive than binary**: three states capture positive, neutral, and negative
-- **Natural for decisions**: accept/reject/abstain, buy/hold/sell, agree/disagree/neutral
-- **Self-balancing**: the 0 state acts as a universal screen, preventing pathological lock-in
-- **Z₃ cyclic dynamics**: rock-paper-scissors is the only natural coordination mechanism
-
-## Stats
-
-| Metric | Value |
-|--------|-------|
-| Lines of Rust | 618 |
-| Test count | 21 |
-| Public types | 7 |
-| Public functions | 29 |
-
-## Ecosystem
-
-This crate is part of the **[SuperInstance Ternary Fleet](https://github.com/orgs/SuperInstance/repositories?q=ternary)**:
-
-- **[ternary-core](https://github.com/SuperInstance/ternary-core)** — shared traits and Z₃ arithmetic
-- **[ternary-grid](https://github.com/SuperInstance/ternary-grid)** — spatial grid with {-1, 0, +1} cells
-- **[ternary-graph](https://github.com/SuperInstance/ternary-graph)** — ternary-weighted graph algorithms
-- **[ternary-automata](https://github.com/SuperInstance/ternary-automata)** — three-state cellular automata
-- **[ternary-compiler](https://github.com/SuperInstance/ternary-compiler)** — expression compiler and optimizer
-
-200+ crates. 4,300+ tests. One pattern.
-
-## Research Context
-
-The ternary approach connects to several active research areas:
-- **Ternary Neural Networks** (TNNs): weights constrained to {-1, 0, +1} for efficient inference
-- **Huawei's ternary chip**: 7nm ternary silicon with 60% less power consumption
-- **Active inference**: free energy minimization naturally maps to ternary action selection
-- **Cyclic dominance**: RPS dynamics maintain biodiversity in spatial ecology
-- **Z₃ group theory**: the only algebraic group on three elements is cyclic addition mod 3
-
-## Usage
-
-```toml
-[dependencies]
-ternary-bayesian = "0.1.0"
 ```
+TernaryDist { p_neg, p_zero, p_pos }
+where p_neg + p_zero + p_pos = 1.0
+```
+
+Construction normalizes inputs. `uniform() = (1/3, 1/3, 1/3)`. Probability lookup: **O(1)**.
+
+### Bayesian Update
+
+Posterior ∝ Likelihood × Prior:
+
+```
+P(X | E) = P(E | X) · P(X) / P(E)
+
+P(E) = Σ_x P(E | X=x) · P(X=x)   for x ∈ {-1, 0, +1}
+```
+
+Update cost: **O(1)** (fixed 3×3 CPT lookup + normalization). Chains of updates are commutative and associative.
+
+### Conditional Probability Tables
+
+For a node X with parent P, the CPT encodes:
+
+```
+CPT[X | P]:
+  P(X=-1 | P=-1), P(X=0 | P=-1), P(X=+1 | P=-1)
+  P(X=-1 | P=0),  P(X=0 | P=0),  P(X=+1 | P=0)
+  P(X=-1 | P=+1), P(X=0 | P=+1), P(X=+1 | P=+1)
+```
+
+CPT lookup: **O(1)** (3×3 table). Storage: 9 floats per parent.
+
+### Belief Propagation
+
+For Bayesian networks (DAGs of ternary variables), belief propagation sends messages along edges:
+
+```
+message_{i→j}(x_j) = Σ_{x_i} φ(x_i, x_j) · Π_{k≠j} message_{k→i}(x_i)
+```
+
+Each message is a TernaryDist. Convergence: loopy belief propagation may not converge but often gives good approximations. Per-iteration cost: **O(E)** where E = number of edges.
+
+### Maximum A Posteriori (MAP)
+
+Find the most likely ternary configuration:
+
+```
+MAP = argmax_{x} P(X=x | evidence)
+```
+
+Exact MAP: **O(3^N)** for N variables (exhaustive). Approximate MAP via belief propagation: **O(E · iterations)**.
+
+## Quick Start
 
 ```rust
-use ternary_bayesian;
+use ternary_bayesian::{TernaryDist, Ternary};
+
+let prior = TernaryDist::new(0.2, 0.6, 0.2).unwrap();
+let evidence = TernaryDist::new(0.1, 0.1, 0.8).unwrap(); // strong positive evidence
+
+let posterior = prior.bayesian_update(&evidence);
+println!("P(+1 | E) = {:.3}", posterior.probability(Ternary::Pos));
 ```
+
+## API
+
+| Type | Description |
+|------|-------------|
+| `Ternary` | `Neg (-1)`, `Zero (0)`, `Pos (+1)` |
+| `TernaryDist` | Probability distribution with p_neg, p_zero, p_pos |
+| `CPT` | Conditional probability table (3×3) |
+| `BayesianNetwork` | DAG of ternary variables with CPTs |
+| `belief_propagate()` | Message passing algorithm |
+| `map_estimate()` | Maximum a posteriori inference |
+
+Key methods: `TernaryDist::new()`, `uniform()`, `probability(Ternary)`, `bayesian_update()`.
+
+## Architecture Notes
+
+Ternary Bayesian provides probabilistic reasoning for fleet state estimation in SuperInstance. In γ + η = C, the posterior P(+1 | evidence) represents γ (growth probability), P(-1 | evidence) represents η (avoidance probability), and P(0 | evidence) represents the neutral/uncertain state. The conservation law: P(+1) + P(0) + P(-1) = 1.0 is the normalized form of γ + η = C.
+
+See [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md) for probabilistic reasoning architecture.
+
+## References
+
+1. Pearl, J. (1988). *Probabilistic Reasoning in Intelligent Systems*. Morgan Kaufmann.
+2. Koller, D. & Friedman, N. (2009). *Probabilistic Graphical Models*. MIT Press.
+3. Murphy, K. P. (2022). *Probabilistic Machine Learning: Advanced Topics*. MIT Press.
 
 ## License
 
