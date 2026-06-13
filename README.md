@@ -95,6 +95,26 @@ Ternary Bayesian provides probabilistic reasoning for fleet state estimation in 
 
 See [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md) for probabilistic reasoning architecture.
 
+
+### Belief Propagation on DAGs
+
+For a Bayesian network (DAG of ternary variables), belief propagation sends messages along edges:
+
+```
+message_{i→j}(x_j) = Σ_{x_i} φ(x_i, x_j) · Π_{k≠j} message_{k→i}(x_i)
+```
+
+Each message is a `TernaryDist` (3 floats). Per-iteration cost: **O(E)** where E = edges. Convergence: trees converge in 2 passes; loopy graphs may not converge but often give good approximations within 10-50 iterations.
+
+### MAP vs Marginal Inference
+
+```
+Marginal: P(X_i = x | evidence)       — one variable at a time
+MAP:      argmax_x P(X = x | evidence) — joint configuration
+```
+
+Marginal: **O(E × iterations)**. MAP (exact): **O(3^N)** exhaustive. MAP (approximate via belief propagation): **O(E × iterations)** with loopy BP or **O(N × 3^k)** with junction tree for treewidth k.
+
 ## References
 
 1. Pearl, J. (1988). *Probabilistic Reasoning in Intelligent Systems*. Morgan Kaufmann.
